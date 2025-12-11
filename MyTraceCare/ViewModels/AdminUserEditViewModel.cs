@@ -1,11 +1,13 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations;
 using MyTraceCare.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace MyTraceCare.ViewModels
 {
-    public class AdminUserViewModel
+    public class AdminUserEditViewModel
     {
+        public string Id { get; set; } = string.Empty;
+
         [Required]
         public string FullName { get; set; } = string.Empty;
 
@@ -18,10 +20,9 @@ namespace MyTraceCare.ViewModels
         [Required]
         public Gender Gender { get; set; }
 
-        [Required]
         public DateTime DOB { get; set; }
 
-        [Required]
-        public string Password { get; set; } = string.Empty;
+        // Optional password update
+        public string? NewPassword { get; set; }
     }
 }

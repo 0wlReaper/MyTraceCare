@@ -1,108 +1,54 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyTraceCare.Data;
 using MyTraceCare.Models;
-using MyTraceCare.Models.ViewModels;
+using MyTraceCare.ViewModels;
 
 namespace MyTraceCare.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class AdminDashboardController : Controller
     {
-        private readonly AppDbContext _db;
         private readonly UserManager<User> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly AppDbContext _db;
 
-        public AdminDashboardController(
-            AppDbContext db,
-            UserManager<User> userManager,
-            RoleManager<IdentityRole> roleManager)
+        public AdminDashboardController(UserManager<User> userManager, AppDbContext db)
         {
-            _db = db;
             _userManager = userManager;
-            _roleManager = roleManager;
+            _db = db;
         }
 
-        // GET: /AdminDashboard/Index
+        // ------------------------------------------------------
+        // DASHBOARD HOME
+        // ------------------------------------------------------
         public async Task<IActionResult> Index()
         {
-            var model = new AdminDashboardViewModel
+            var vm = new AdminDashboardStatsViewModel
             {
+                TotalUsers = await _db.Users.CountAsync(),
                 TotalPatients = await _db.Users.CountAsync(u => u.Role == UserRole.Patient),
                 TotalClinicians = await _db.Users.CountAsync(u => u.Role == UserRole.Clinician),
                 TotalAdmins = await _db.Users.CountAsync(u => u.Role == UserRole.Admin),
                 TotalAlerts = await _db.Alerts.CountAsync()
             };
 
-            return View("~/Views/Admin/Index.cshtml", model);
+            return View("~/Views/Admin/Index.cshtml", vm);
         }
 
-        // GET: /AdminDashboard/CreateUser
-        [HttpGet]
-        public IActionResult CreateUser()
+        // ------------------------------------------------------
+        // LIST USERS
+        // ------------------------------------------------------
+        public async Task<IActionResult> Users()
         {
-            var vm = new AdminUserViewModel
-            {
-                DOB = new System.DateTime(1990, 1, 1)
-            };
-
-            return View("~/Views/Admin/CreateUser.cshtml", vm);
+            var users = await _db.Users.OrderBy(u => u.FullName).ToListAsync();
+            return View("~/Views/Admin/Users.cshtml", users);
         }
 
-        // POST: /AdminDashboard/CreateUser
-        [HttpPost]
-        public async Task<IActionResult> CreateUser(AdminUserViewModel model)
-        {
-            if (!ModelState.IsValid)
-                return View("~/Views/Admin/CreateUser.cshtml", model);
-
-            // check if email already exists
-            var existing = await _userManager.FindByEmailAsync(model.Email);
-            if (existing != null)
-            {
-                ModelState.AddModelError(string.Empty, "A user with this email already exists.");
-                return View("~/Views/Admin/CreateUser.cshtml", model);
-            }
-
-            var user = new User
-            {
-                UserName = model.Email,
-                Email = model.Email,
-                FullName = model.FullName,
-                Gender = model.Gender,
-                DOB = model.DOB,
-                Role = model.Role,
-                EmailConfirmed = true,
-                CreatedAt = System.DateTime.UtcNow
-            };
-
-            var createResult = await _userManager.CreateAsync(user, model.Password);
-            if (!createResult.Succeeded)
-            {
-                foreach (var err in createResult.Errors)
-                    ModelState.AddModelError(string.Empty, err.Description);
-
-                return View("~/Views/Admin/CreateUser.cshtml", model);
-            }
-
-            // ensure Identity role exists & add
-            var roleName = model.Role.ToString(); // "Patient", "Clinician", "Admin"
-            if (!await _roleManager.RoleExistsAsync(roleName))
-            {
-                await _roleManager.CreateAsync(new IdentityRole(roleName));
-            }
-
-            await _userManager.AddToRoleAsync(user, roleName);
-
-            TempData["AdminMessage"] = $"User '{model.FullName}' created as {roleName}.";
-            return RedirectToAction("Index");
-        }
-
-        // GET: /AdminDashboard/Alerts
+        // ------------------------------------------------------
+        // SYSTEM ALERTS
+        // ------------------------------------------------------
         public async Task<IActionResult> Alerts()
         {
             var alerts = await _db.Alerts
@@ -111,6 +57,133 @@ namespace MyTraceCare.Controllers
                 .ToListAsync();
 
             return View("~/Views/Admin/Alerts.cshtml", alerts);
+        }
+
+        // ------------------------------------------------------
+        // CREATE USER (GET)
+        // ------------------------------------------------------
+        public IActionResult CreateUser()
+        {
+            return View("~/Views/Admin/CreateUser.cshtml", new AdminUserViewModel());
+        }
+
+        // ------------------------------------------------------
+        // CREATE USER (POST)
+        // ------------------------------------------------------
+        [HttpPost]
+        public async Task<IActionResult> CreateUser(AdminUserViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View("~/Views/Admin/CreateUser.cshtml", model);
+
+            var exists = await _userManager.FindByEmailAsync(model.Email);
+            if (exists != null)
+            {
+                ModelState.AddModelError("", "Email already exists.");
+                return View("~/Views/Admin/CreateUser.cshtml", model);
+            }
+
+            var user = new User
+            {
+                UserName = model.Email,
+                Email = model.Email,
+                FullName = model.FullName,
+                Role = model.Role,
+                Gender = model.Gender,
+                DOB = model.DOB,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (!result.Succeeded)
+            {
+                foreach (var e in result.Errors)
+                    ModelState.AddModelError("", e.Description);
+
+                return View("~/Views/Admin/CreateUser.cshtml", model);
+            }
+
+            await _userManager.AddToRoleAsync(user, model.Role.ToString());
+
+            return RedirectToAction("Users");
+        }
+
+        // ------------------------------------------------------
+        // EDIT USER (GET)
+        // ------------------------------------------------------
+        public async Task<IActionResult> EditUser(string id)
+        {
+            var user = await _db.Users.FindAsync(id);
+            if (user == null) return NotFound();
+
+            var vm = new AdminUserEditViewModel
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email!,
+                Gender = user.Gender ?? Gender.Male,
+                Role = user.Role,
+                DOB = user.DOB ?? DateTime.UtcNow
+            };
+
+            return View("~/Views/Admin/EditUser.cshtml", vm);
+        }
+
+        // ------------------------------------------------------
+        // EDIT USER (POST)
+        // ------------------------------------------------------
+        [HttpPost]
+        public async Task<IActionResult> EditUser(AdminUserEditViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View("~/Views/Admin/EditUser.cshtml", model);
+
+            var user = await _db.Users.FindAsync(model.Id);
+            if (user == null) return NotFound();
+
+            user.FullName = model.FullName;
+            user.Email = model.Email;
+            user.UserName = model.Email;
+            user.Gender = model.Gender;
+            user.Role = model.Role;
+            user.DOB = model.DOB;
+
+            if (!string.IsNullOrWhiteSpace(model.NewPassword))
+            {
+                await _userManager.RemovePasswordAsync(user);
+                await _userManager.AddPasswordAsync(user, model.NewPassword);
+            }
+
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction("Users");
+        }
+
+        // ------------------------------------------------------
+        // DELETE USER CONFIRM
+        // ------------------------------------------------------
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            var user = await _db.Users.FindAsync(id);
+            if (user == null) return NotFound();
+
+            return View("~/Views/Admin/DeleteUser.cshtml", user);
+        }
+
+        // ------------------------------------------------------
+        // DELETE USER (POST)
+        // ------------------------------------------------------
+        [HttpPost]
+        public async Task<IActionResult> DeleteUserConfirmed(string id)
+        {
+            var user = await _db.Users.FindAsync(id);
+            if (user == null) return NotFound();
+
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction("Users");
         }
     }
 }

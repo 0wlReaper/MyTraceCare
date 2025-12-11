@@ -1,0 +1,63 @@
+﻿@model MyTraceCare.ViewModels.AdminAssignmentViewModel
+
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "Assign Patients";
+}
+
+<h2 class="mb-3">Assign Patients to Clinicians</h2>
+
+<form method="post" asp-action="Assign" class="row g-3 mb-4">
+
+    <div class="col-md-4">
+        <label class="form-label">Clinician</label>
+        <select name="clinicianId" class="form-select">
+            @foreach (var c in Model.Clinicians)
+            {
+                <option value="@c.Id">@c.FullName (@c.Email)</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">Patient</label>
+        <select name="patientId" class="form-select">
+            @foreach (var p in Model.Patients)
+            {
+                <option value="@p.Id">@p.FullName (@p.Email)</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-4 d-flex align-items-end">
+        <button class="btn btn-dark w-100">Assign</button>
+    </div>
+</form>
+
+
+<h3 class="mt-4">Current Assignments</h3>
+
+<table class="table table-bordered mt-3">
+    <thead class="table-light">
+        <tr>
+            <th>Clinician</th>
+            <th>Patient</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var a in Model.Assignments)
+        {
+            <tr>
+                <td>@a.Clinician?.FullName</td>
+                <td>@a.Patient?.FullName</td>
+                <td>
+                    <a class="btn btn-sm btn-danger"
+                       href="/AdminDashboard/RemoveAssignment/@a.Id">
+                        Remove
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

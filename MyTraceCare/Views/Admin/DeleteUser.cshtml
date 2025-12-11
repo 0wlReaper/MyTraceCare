@@ -1,0 +1,16 @@
+﻿@model MyTraceCare.Models.User
+
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "Delete User";
+}
+
+<h2>Delete User</h2>
+
+<p>Are you sure you want to delete <strong>@Model.FullName</strong>?</p>
+
+<form method="post" asp-action="DeleteUserConfirmed">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button class="btn btn-danger">Delete</button>
+    <a href="/AdminDashboard/Users" class="btn btn-secondary">Cancel</a>
+</form>

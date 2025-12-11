@@ -1,42 +1,37 @@
-﻿@{
+﻿@model MyTraceCare.ViewModels.AdminDashboardStatsViewModel
+@{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "Admin Dashboard";
+    ViewData["Title"] = "Dashboard";
 }
 
 <h2 class="mb-4">Admin Dashboard</h2>
 
-<div class="row g-3">
-
+<div class="row">
     <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h6 class="text-muted">PATIENTS</h6>
-            <h3>@ViewBag.PatientCount</h3>
+        <div class="card shadow-sm p-3">
+            <h5>Total Users</h5>
+            <h3>@Model.TotalUsers</h3>
         </div>
     </div>
 
     <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h6 class="text-muted">CLINICIANS</h6>
-            <h3>@ViewBag.ClinicianCount</h3>
+        <div class="card shadow-sm p-3">
+            <h5>Patients</h5>
+            <h3>@Model.TotalPatients</h3>
         </div>
     </div>
 
     <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h6 class="text-muted">ADMINS</h6>
-            <h3>@ViewBag.AdminCount</h3>
+        <div class="card shadow-sm p-3">
+            <h5>Clinicians</h5>
+            <h3>@Model.TotalClinicians</h3>
         </div>
     </div>
 
     <div class="col-md-3">
-        <div class="card shadow-sm text-center p-3">
-            <h6 class="text-muted">ALERTS</h6>
-            <h3>@ViewBag.AlertCount</h3>
+        <div class="card shadow-sm p-3">
+            <h5>System Alerts</h5>
+            <h3>@Model.TotalAlerts</h3>
         </div>
     </div>
-
 </div>
-
-<p class="mt-4 text-muted">
-    Use the left navigation menu to create users or view system alerts.
-</p>

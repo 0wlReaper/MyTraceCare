@@ -1,0 +1,34 @@
+﻿@model List<MyTraceCare.Models.User>
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "Manage Users";
+}
+
+<h2 class="mb-3">Users</h2>
+
+<a class="btn btn-dark mb-3" href="/AdminDashboard/CreateUser">+ Create New User</a>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-light">
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var u in Model)
+        {
+            <tr>
+                <td>@u.FullName</td>
+                <td>@u.Email</td>
+                <td>@u.Role</td>
+                <td>
+                    <a href="/AdminDashboard/EditUser/@u.Id" class="btn btn-sm btn-primary">Edit</a>
+                    <a href="/AdminDashboard/DeleteUser/@u.Id" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
