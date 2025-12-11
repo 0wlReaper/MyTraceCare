@@ -1,0 +1,31 @@
+﻿@model MyTraceCare.Models.ViewModels.CommentThreadItemViewModel
+
+<div style="margin-left:@(Model.Level * 25)px" class="mb-3">
+    <div class="p-3 border rounded bg-white shadow-sm">
+        <strong>@Model.AuthorName:</strong>
+        <div>@Model.Comment.Text</div>
+        <small class="text-muted">@Model.Comment.CreatedAt.ToString("dd MMM yyyy • HH:mm")</small>
+
+        <div class="mt-2">
+            <button class="btn btn-sm btn-outline-primary"
+                    onclick="document.getElementById('reply-@Model.Comment.Id').classList.toggle('d-none')">
+                Reply
+            </button>
+        </div>
+
+        <form id="reply-@Model.Comment.Id"
+              class="mt-2 d-none"
+              method="post"
+              action="/ClinicianAlerts/AddReply">
+            <input type="hidden" name="alertId" value="@Model.AlertId" />
+            <input type="hidden" name="parentId" value="@Model.Comment.Id" />
+            <textarea name="comment" class="form-control" rows="2"></textarea>
+            <button class="btn btn-sm btn-dark mt-2">Submit</button>
+        </form>
+    </div>
+
+    @foreach (var reply in Model.Replies)
+    {
+        <partial name="_CommentThread" model="reply" />
+    }
+</div>

@@ -1,0 +1,246 @@
+﻿@page
+@model MyTraceCare.Areas.Identity.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #c3e4ff 0%, #a8d8ff 40%, #7fc6ff 100%);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* Diagonal white overlay */
+    .tc-diagonal-shape {
+        height: 100%;
+        width: 100%;
+        background-color: white;
+        position: absolute;
+        top: 0;
+        left: 0;
+        clip-path: polygon(0 0, 100% 0, 100% 35%, 0 65%);
+        opacity: 0.7;
+        z-index: 1;
+    }
+
+    .tc-auth-wrapper {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-top: 40px;
+        z-index: 2;
+    }
+
+    .tc-auth-card {
+        width: 1000px;
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        overflow: hidden;
+        z-index: 3;
+    }
+
+    /* LEFT SIDE: LOGO ONLY */
+    .tc-left-panel {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px;
+    }
+
+        .tc-left-panel img {
+            width: 180px;
+            height: 180px;
+            object-fit: contain;
+        }
+
+    /* RIGHT SIDE: FORM */
+    .tc-right-panel {
+        padding: 40px;
+        border-left: 1px solid #f3f4f6;
+        background: #ffffff;
+    }
+
+    .tc-form-title {
+        font-size: 1.6rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 6px;
+        color: #111827;
+    }
+
+    .tc-form-caption {
+        font-size: 0.85rem;
+        text-align: center;
+        color: #6b7280;
+        margin-bottom: 24px;
+    }
+
+    .tc-input-group {
+        margin-bottom: 16px;
+    }
+
+    .tc-input-label {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: 6px;
+    }
+
+    .tc-input,
+    .tc-select {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        background: white;
+    }
+
+        .tc-input:focus,
+        .tc-select:focus {
+            outline: none;
+            border-color: #111827;
+            box-shadow: 0 0 0 1px #11182722;
+        }
+
+    .tc-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .tc-primary-btn {
+        width: 100%;
+        border-radius: 10px;
+        padding: 12px 16px;
+        border: none;
+        background: #111827;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+    .tc-bottom-text {
+        text-align: center;
+        margin-top: 16px;
+        color: #6b7280;
+    }
+
+        .tc-bottom-text a {
+            color: #111827;
+            font-weight: 600;
+            text-decoration: none;
+        }
+</style>
+
+<!-- BACKGROUND -->
+<div class="tc-diagonal-shape"></div>
+
+<!-- MAIN CARD -->
+<div class="tc-auth-wrapper">
+    <div class="tc-auth-card">
+
+        <!-- LEFT LOGO -->
+        <div class="tc-left-panel">
+            <img src="~/images/logo.png" alt="TraceCare logo" />
+        </div>
+
+        <!-- RIGHT FORM -->
+        <div class="tc-right-panel">
+
+            <h1 class="tc-form-title">Create your account</h1>
+            <p class="tc-form-caption">Enter your details to sign up.</p>
+
+            <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="tc-grid-2">
+                    <!-- Full Name -->
+                    <div class="tc-input-group">
+                        <label asp-for="Input.FullName" class="tc-input-label"></label>
+                        <input asp-for="Input.FullName" class="tc-input" />
+                        <span asp-validation-for="Input.FullName" class="text-danger"></span>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="tc-input-group">
+                        <label asp-for="Input.Email" class="tc-input-label"></label>
+                        <input asp-for="Input.Email" class="tc-input" autocomplete="username" />
+                        <span asp-validation-for="Input.Email" class="text-danger"></span>
+                    </div>
+
+                    <!-- Gender -->
+                    <div class="tc-input-group">
+                        <label asp-for="Input.Gender" class="tc-input-label"></label>
+                        <select asp-for="Input.Gender" class="tc-select">
+                            <option value="">Select gender…</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                            <option value="NonBinary">Non-binary</option>
+                        </select>
+                        <span asp-validation-for="Input.Gender" class="text-danger"></span>
+                    </div>
+
+                    <!-- DOB -->
+                    <div class="tc-input-group">
+                        <label asp-for="Input.DOB" class="tc-input-label"></label>
+                        <input asp-for="Input.DOB" type="date" class="tc-input" />
+                        <span asp-validation-for="Input.DOB" class="text-danger"></span>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="tc-input-group">
+                        <label asp-for="Input.Role" class="tc-input-label"></label>
+                        <select asp-for="Input.Role" class="tc-select">
+                            <option value="">Select role…</option>
+                            <option value="Patient">Patient</option>
+                            <option value="Clinician">Clinician</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                        <span asp-validation-for="Input.Role" class="text-danger"></span>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="tc-input-group">
+                        <label asp-for="Input.Password" class="tc-input-label"></label>
+                        <input asp-for="Input.Password" class="tc-input" autocomplete="new-password" />
+                        <span asp-validation-for="Input.Password" class="text-danger"></span>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="tc-input-group">
+                        <label asp-for="Input.ConfirmPassword" class="tc-input-label"></label>
+                        <input asp-for="Input.ConfirmPassword" class="tc-input" autocomplete="new-password" />
+                        <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <button type="submit" class="tc-primary-btn">Create Account</button>
+
+                <div class="tc-bottom-text">
+                    Already have an account?
+                    <a asp-page="./Login">Login</a>
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

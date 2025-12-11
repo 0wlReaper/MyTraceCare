@@ -1,0 +1,91 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"] - TraceCare</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f4f6f9;
+        }
+
+        .sidebar {
+            width: 240px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #111827;
+            padding: 24px 12px;
+            color: white;
+        }
+
+            .sidebar .logo {
+                text-align: center;
+                margin-bottom: 32px;
+            }
+
+                .sidebar .logo img {
+                    width: 80px;
+                }
+
+        .nav-link {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: block;
+        }
+
+            .nav-link.active,
+            .nav-link:hover {
+                background: #1f2937;
+                color: white;
+            }
+
+        .main-content {
+            margin-left: 240px;
+            padding: 32px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
+        <div class="logo">
+            <img src="~/images/logo.png" />
+            <h5 class="mt-2">TraceCare</h5>
+        </div>
+
+        <nav class="nav flex-column">
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]!.ToString() == "PatientDashboard" ? "active" : "")"
+               href="/PatientDashboard/Index">Home</a>
+
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]!.ToString() == "PatientAlerts" ? "active" : "")"
+               href="/PatientAlerts/Index">Alerts</a>
+
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]!.ToString() == "PatientProfile" ? "active" : "")"
+               href="/PatientProfile/Index">Profile</a>
+
+            <a class="nav-link text-danger" href="/Identity/Account/Logout">Logout</a>
+        </nav>
+    </div>
+
+    <!-- MAIN PAGE -->
+    <main class="main-content">
+        @RenderBody()
+    </main>
+
+</body>
+</html>

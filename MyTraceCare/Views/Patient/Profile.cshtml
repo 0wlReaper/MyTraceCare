@@ -1,0 +1,21 @@
+﻿@model MyTraceCare.Models.User
+@{
+    Layout = "~/Views/Patient/_PatientLayout.cshtml";
+    ViewData["Title"] = "Profile";
+}
+
+<h2 class="mb-4">My Profile</h2>
+
+<div class="card shadow-sm p-4" style="max-width:500px;">
+    <h5 class="fw-bold mb-3">Personal Information</h5>
+
+    <p><strong>Name:</strong> @Model.FullName</p>
+    <p><strong>Email:</strong> @Model.Email</p>
+    <p><strong>Gender:</strong> @Model.Gender</p>
+    <p><strong>Date of Birth:</strong> @Model.DOB?.ToString("dd MMM yyyy")</p>
+    <p><strong>Role:</strong> @Model.Role</p>
+
+    <hr />
+
+    <small class="text-muted">Account created: @Model.CreatedAt.ToString("dd MMM yyyy")</small>
+</div>

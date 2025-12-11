@@ -1,0 +1,56 @@
+﻿@model List<MyTraceCare.Models.Alert>
+
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "System Alerts";
+}
+
+<h2 class="mb-3">System Alerts</h2>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">No alerts in the system.</div>
+}
+else
+{
+    <table class="table table-striped table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Patient</th>
+                <th>Message</th>
+                <th>Risk Level</th>
+                <th>Frame</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in Model)
+            {
+                <tr>
+                    <td>@(a.User?.FullName ?? "-")</td>
+
+                    <td>@a.Message</td>
+
+                    <td>
+                        @if (string.Equals(a.RiskLevel, "High", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <span class="badge bg-danger">High</span>
+                        }
+                        else if (string.Equals(a.RiskLevel, "Medium", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <span class="badge bg-warning text-dark">Medium</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">Low</span>
+                        }
+                    </td>
+
+                    <td>@a.FrameIndex</td>
+
+                    <td>@a.CreatedAt.ToString("dd MMM yyyy • HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

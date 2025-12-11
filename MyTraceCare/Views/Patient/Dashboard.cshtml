@@ -1,0 +1,396 @@
+﻿@model MyTraceCare.Models.HeatmapData
+
+@{
+    Layout = "~/Views/Patient/_PatientLayout.cshtml";
+    ViewData["Title"] = "Patient Dashboard";
+
+    var dates = ViewBag.AvailableDates as List<DateTime> ?? new List<DateTime>();
+    var selectedDate = (DateTime?)ViewBag.SelectedDate;
+    int rangeMinutes = ViewBag.RangeMinutes is int rm ? rm : 60;
+    string frameWarning = ViewBag.FrameWarning as string ?? string.Empty;
+    string peakHistoryJson = ViewBag.PeakHistoryJson as string ?? "[]";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Patient Dashboard</h2>
+
+    <!-- Date selector -->
+    <form asp-action="Index" method="get" class="mb-3">
+        <label class="form-label fw-semibold me-2">Select a Date</label>
+        <select name="date" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+            @foreach (var d in dates)
+            {
+                if (selectedDate.HasValue && d.Date == selectedDate.Value.Date)
+                {
+                    <option value="@d.ToString("yyyy-MM-dd")" selected>@d.ToString("dd MMM yyyy")</option>
+                }
+                else
+                {
+                    <option value="@d.ToString("yyyy-MM-dd")">@d.ToString("dd MMM yyyy")</option>
+                }
+            }
+        </select>
+
+        @if (Model != null)
+        {
+            <input type="hidden" name="frame" value="@Model.FrameIndex" />
+        }
+        <input type="hidden" name="rangeMinutes" value="@rangeMinutes" />
+    </form>
+
+    @if (Model == null)
+    {
+        <div class="alert alert-info">No data available for the selected date.</div>
+        return;
+    }
+
+    @if (!string.IsNullOrEmpty(frameWarning))
+    {
+        <div class="alert alert-warning">@frameWarning</div>
+    }
+
+    <!-- Controls -->
+    <form asp-action="Index" method="get" class="mb-3" id="frameForm">
+        <input type="hidden" name="date" value="@Model.Date.ToString("yyyy-MM-dd")" />
+        <input type="hidden" id="hiddenFrame" name="frame" value="@Model.FrameIndex" />
+        <input type="hidden" id="hiddenRange" name="rangeMinutes" value="@rangeMinutes" />
+
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="flex-grow-1">
+                <label class="me-2 fw-semibold">Time frame</label>
+                <input type="range"
+                       id="frameSlider"
+                       class="form-range w-75"
+                       min="0"
+                       max="@(Model.TotalFrames - 1)"
+                       value="@Model.FrameIndex" />
+                <span class="ms-2">
+                    Frame <span id="frameLabel">@Model.FrameIndex</span> / @(Model.TotalFrames - 1)
+                </span>
+            </div>
+
+            <div>
+                <label class="fw-semibold me-1">Window</label>
+                <select id="rangeSelect" class="form-select d-inline-block w-auto">
+                    @{
+                        int[] allowed = { 5, 10, 30, 60, 120, 360, 1440 };
+                        string[] labels = { "5 min", "10 min", "30 min", "1 hour", "2 hours", "6 hours", "24 hours" };
+                        for (int i = 0; i < allowed.Length; i++)
+                        {
+                            var val = allowed[i];
+                            var label = labels[i];
+                            if (val == rangeMinutes)
+                            {
+                                <option value="@val" selected>@label</option>
+                            }
+                            else
+                            {
+                                <option value="@val">@label</option>
+                            }
+                        }
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="fw-semibold me-1">Speed</label>
+                <select id="speedSelect" class="form-select d-inline-block w-auto">
+                    <option value="0">0x</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mt-2">
+            <button type="button" class="btn btn-sm btn-dark me-2" id="btnPlay">Play</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="btnPause">Pause</button>
+            <button type="submit" class="btn btn-sm btn-outline-dark">Refresh</button>
+        </div>
+    </form>
+
+    <!-- Metrics -->
+    <div class="row mb-4">
+        <div class="col-lg-4 mb-3">
+            <div class="card shadow-sm border-0 metric-card metric-primary">
+                <div class="card-body">
+                    <div class="text-uppercase small text-muted mb-1">Peak Pressure Index</div>
+                    <div class="h3 fw-bold" id="ppiValue">@Model.PeakPressureIndex.ToString("0") kPa</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-3">
+            <div class="card shadow-sm border-0 metric-card">
+                <div class="card-body">
+                    <div class="text-uppercase small text-muted mb-1">Contact Area</div>
+                    <div class="h3 fw-bold" id="contactValue">@Model.ContactAreaPercent.ToString("0.0")%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-3">
+            <div class="card shadow-sm border-0 metric-card metric-risk-@Model.RiskLevel.ToLower()" id="riskCard">
+                <div class="card-body">
+                    <div class="text-uppercase small text-muted mb-1">Risk Level</div>
+                    <div class="h3 fw-bold" id="riskValue">@Model.RiskLevel</div>
+                    <div class="small text-muted">
+                        Max sensor: <span id="peakValue">@Model.PeakPressure.ToString("0")</span> kPa
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Heatmap + PPI graph side-by-side -->
+    <div class="row mb-5">
+        <div class="col-lg-7 mb-3">
+            <h4 class="mb-3">Heatmap</h4>
+            <div class="heatmap-grid" id="heatmapGrid">
+                @for (int i = 0; i < 32; i++)
+                {
+                    for (int j = 0; j < 32; j++)
+                    {
+                        double v = Model.Matrix[i, j];
+                        <div class="cell"
+                             id="cell-@i-@j"
+                             style="background-color:@ColorScale(v)"></div>
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-5 mb-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">Peak Pressure Index over time</h5>
+                        <small class="text-muted">Within selected window</small>
+                    </div>
+                    <canvas id="peakChart" style="max-height:260px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .metric-card {
+        border-radius: 18px;
+    }
+
+    .metric-primary {
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        color: #fff;
+    }
+
+        .metric-primary .text-muted {
+            color: #bfdbfe !important;
+        }
+
+    .metric-risk-low {
+        background: #ecfdf3;
+    }
+
+    .metric-risk-medium {
+        background: #fffbeb;
+    }
+
+    .metric-risk-high {
+        background: #fef2f2;
+    }
+
+    .heatmap-grid {
+        display: grid;
+        grid-template-columns: repeat(32, 12px);
+        grid-template-rows: repeat(32, 12px);
+        gap: 1px;
+    }
+
+    .cell {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // --------- Color scale (same as server) ---------
+    function colorScale(v) {
+        if (v < 5) return "#e8f6ff";
+        if (v < 15) return "#9bd2ff";
+        if (v < 30) return "#ffbf80";
+        return "#ff5c5c";
+    }
+
+    // --------- PPI chart ---------
+    (function () {
+        const ctx = document.getElementById('peakChart');
+        if (!ctx) return;
+
+        const peakHistory = @Html.Raw(peakHistoryJson);
+        const labels = peakHistory.map((_, i) => i);
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'PPI (kPa)',
+                    data: peakHistory,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { title: { display: true, text: 'Frame (seconds)' } },
+                    y: { title: { display: true, text: 'Peak Pressure Index (kPa)' } }
+                }
+            }
+        });
+    })();
+
+    // --------- Player logic ---------
+    (function () {
+        const frameSlider  = document.getElementById('frameSlider');
+        const frameLabel   = document.getElementById('frameLabel');
+        const btnPlay      = document.getElementById('btnPlay');
+        const btnPause     = document.getElementById('btnPause');
+        const rangeSelect  = document.getElementById('rangeSelect');
+        const speedSelect  = document.getElementById('speedSelect');
+        const hiddenFrame  = document.getElementById('hiddenFrame');
+        const hiddenRange  = document.getElementById('hiddenRange');
+
+        const ppiValue     = document.getElementById('ppiValue');
+        const contactValue = document.getElementById('contactValue');
+        const riskValue    = document.getElementById('riskValue');
+        const peakValue    = document.getElementById('peakValue');
+        const riskCard     = document.getElementById('riskCard');
+
+        if (!frameSlider || !frameLabel || !btnPlay || !btnPause) return;
+
+        const selectedDate = "@Model.Date.ToString("yyyy-MM-dd")";
+        let isPlaying = false;
+        let timer = null;
+
+        function updateRiskCardClass(risk) {
+            riskCard.classList.remove("metric-risk-low", "metric-risk-medium", "metric-risk-high");
+            const key = (risk || "").toLowerCase();
+            if (key === "low") riskCard.classList.add("metric-risk-low");
+            else if (key === "medium") riskCard.classList.add("metric-risk-medium");
+            else if (key === "high") riskCard.classList.add("metric-risk-high");
+        }
+
+        async function loadFrame(frameIndex) {
+            const range = parseInt(rangeSelect.value);
+            const url = `/PatientDashboard/GetFrame?date=${selectedDate}&frame=${frameIndex}&rangeMinutes=${range}`;
+
+            try {
+                const resp = await fetch(url);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                if (!data.success) return;
+
+                frameSlider.value = data.frameIndex;
+                hiddenFrame.value = data.frameIndex;
+                frameLabel.innerText = data.frameIndex;
+
+                ppiValue.innerText     = `${data.peakPressureIndex.toFixed(0)} kPa`;
+                contactValue.innerText = `${data.contactAreaPercent.toFixed(1)}%`;
+                riskValue.innerText    = data.riskLevel;
+                peakValue.innerText    = data.peakPressure.toFixed(0);
+                updateRiskCardClass(data.riskLevel);
+
+                const flat = data.matrix;
+                if (Array.isArray(flat) && flat.length === 1024) {
+                    let idx = 0;
+                    for (let r = 0; r < 32; r++) {
+                        for (let c = 0; c < 32; c++) {
+                            const v = flat[idx++];
+                            const cell = document.getElementById(`cell-${r}-${c}`);
+                            if (cell) cell.style.backgroundColor = colorScale(v);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function stopPlayback() {
+            isPlaying = false;
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+
+        // Slider manual move
+        frameSlider.addEventListener('input', function () {
+            const val = parseInt(this.value);
+            frameLabel.innerText = val;
+            hiddenFrame.value = val;
+        });
+
+        frameSlider.addEventListener('change', function () {
+            const val = parseInt(this.value);
+            loadFrame(val);
+        });
+
+        // Window change -> server refresh (so TotalFrames & chart update)
+        rangeSelect.addEventListener('change', function () {
+            hiddenRange.value = this.value;
+            document.getElementById('frameForm').submit();
+        });
+
+        // Play
+        btnPlay.addEventListener('click', function () {
+            if (isPlaying) return;
+
+            let speed = parseFloat(speedSelect.value);
+            if (speed <= 0) return; // 0x = don't play
+
+            isPlaying = true;
+            const maxFrame = parseInt(frameSlider.max);
+
+            const baseInterval = 1000; // 1s per frame at 1x
+            const interval = baseInterval / speed;
+
+            timer = setInterval(async () => {
+                if (!isPlaying) return;
+                let current = parseInt(frameSlider.value);
+                if (current >= maxFrame) {
+                    stopPlayback();
+                    return;
+                }
+                const next = current + 1;
+                await loadFrame(next);
+            }, interval);
+        });
+
+        // Pause
+        btnPause.addEventListener('click', stopPlayback);
+
+        // Change speed while playing
+        speedSelect.addEventListener('change', function () {
+            if (!isPlaying) return;
+            stopPlayback();
+            btnPlay.click();
+        });
+    })();
+</script>
+
+@functions {
+    string ColorScale(double v)
+    {
+        if (v < 5) return "#e8f6ff";
+        if (v < 15) return "#9bd2ff";
+        if (v < 30) return "#ffbf80";
+        return "#ff5c5c";
+    }
+}

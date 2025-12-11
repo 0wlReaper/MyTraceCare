@@ -1,0 +1,28 @@
+﻿@model MyTraceCare.Models.ViewModels.ClinicianAlertThreadViewModel
+@{
+    Layout = "~/Views/Clinician/_ClinicianLayout.cshtml";
+}
+
+<h3 class="mb-3">Alert Discussion</h3>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5>@Model.Alert.Title</h5>
+        <div class="text-muted small">@Model.Alert.CreatedAt.ToString("dd MMM yyyy • HH:mm")</div>
+        <p class="mt-2">@Model.Alert.Message</p>
+    </div>
+</div>
+
+<h5 class="mb-3">Comments</h5>
+
+@foreach (var root in Model.Thread)
+{
+    <partial name="_CommentThread" model="root" />
+}
+
+<h5 class="mt-4">Add Comment</h5>
+<form method="post" action="/ClinicianAlerts/AddReply">
+    <input type="hidden" name="alertId" value="@Model.Alert.Id" />
+    <textarea class="form-control" name="comment" rows="3" placeholder="Write a comment..."></textarea>
+    <button class="btn btn-dark mt-2">Submit</button>
+</form>

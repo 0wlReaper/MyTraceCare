@@ -1,0 +1,118 @@
+﻿@model MyTraceCare.Models.ViewModels.ClinicianPatientDetailsViewModel
+@{
+    Layout = "~/Views/Clinician/_ClinicianLayout.cshtml";
+    ViewData["Title"] = "Patient Details";
+}
+
+<h2 class="mb-4">Patient: @Model.Patient.FullName</h2>
+
+<!-- Date Selector -->
+<form method="get" class="mb-3">
+    <input type="hidden" name="id" value="@Model.Patient.Id" />
+
+    <label class="fw-semibold">Select Dataset:</label>
+    <select name="date" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+        @foreach (var d in Model.AvailableDates)
+        {
+            <option value="@d.ToString("yyyy-MM-dd")"
+                    selected="@(d.Date == Model.SelectedDate.Date)">
+                @d.ToString("dd MMM yyyy")
+            </option>
+        }
+    </select>
+
+    <input type="hidden" name="frame" value="@Model.FrameIndex" />
+    <input type="hidden" name="rangeMinutes" value="60" />
+</form>
+
+
+@if (Model.Matrix == null)
+{
+    <div class="alert alert-info">No data available.</div>
+    return;
+}
+
+<!-- Metrics Section -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm p-3">
+            <div class="text-muted small">Peak Pressure Index</div>
+            <div class="h4 fw-bold">@Model.PeakPressureIndex.ToString("0") kPa</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm p-3">
+            <div class="text-muted small">Contact Area</div>
+            <div class="h4 fw-bold">@Model.ContactAreaPercent.ToString("0.0")%</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm p-3">
+            <div class="text-muted small">Risk Level</div>
+            <div class="h4 fw-bold">@Model.RiskLevel</div>
+        </div>
+    </div>
+</div>
+
+<!-- Heatmap -->
+<h4 class="mb-3">Heatmap</h4>
+<div class="heatmap-grid mb-4">
+    @for (int i = 0; i < 32; i++)
+    {
+        for (int j = 0; j < 32; j++)
+        {
+            var v = Model.Matrix[i, j];
+            <div class="cell" style="background-color:@ColorScale(v)"></div>
+        }
+    }
+</div>
+
+<!-- Alerts -->
+<h4 class="mt-4">Alerts for this Patient</h4>
+
+@if (!Model.Alerts.Any())
+{
+    <div class="alert alert-info">No alerts for this patient.</div>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var a in Model.Alerts)
+        {
+            <li class="list-group-item">
+                <strong>@a.Title</strong><br />
+                @a.Message<br />
+                <span class="small text-muted">@a.CreatedAt.ToString("dd MMM yyyy • HH:mm")</span>
+                <a class="btn btn-sm btn-outline-primary float-end"
+                   href="/ClinicianAlerts/Thread/@a.Id">View Thread</a>
+            </li>
+        }
+    </ul>
+}
+
+<style>
+    .heatmap-grid {
+        display: grid;
+        grid-template-columns: repeat(32, 12px);
+        grid-template-rows: repeat(32, 12px);
+        gap: 1px;
+    }
+
+    .cell {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+    }
+</style>
+
+@functions {
+    string ColorScale(double v)
+    {
+        if (v < 5) return "#e8f6ff";
+        if (v < 15) return "#9bd2ff";
+        if (v < 30) return "#ffbf80";
+        return "#ff5c5c";
+    }
+}

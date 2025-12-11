@@ -1,0 +1,27 @@
+﻿.dashboard-container {
+    padding: 24px;
+    max-width: 1000px;
+    margin: auto;
+}
+
+.heatmap {
+    display: grid;
+    grid-template-columns: repeat(32, 12px);
+    grid-template-rows: repeat(32, 12px);
+    gap: 1px;
+    margin-top: 20px;
+}
+
+.cell {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.pressure-card {
+    padding: 16px;
+    background: #eef7ff;
+    border-radius: 8px;
+    margin-top: 20px;
+    width: 200px;
+}

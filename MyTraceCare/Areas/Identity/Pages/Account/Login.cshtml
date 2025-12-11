@@ -1,0 +1,202 @@
+﻿@page
+@model MyTraceCare.Areas.Identity.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #c3e4ff 0%, #a8d8ff 40%, #7fc6ff 100%);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* White diagonal shape EXACTLY like your HTML */
+    .tc-diagonal-shape {
+        height: 100%;
+        width: 100%;
+        background-color: white;
+        position: absolute;
+        top: 0;
+        left: 0;
+        clip-path: polygon(0 0, 100% 0, 100% 35%, 0 65%);
+        opacity: 0.7;
+        z-index: 1;
+    }
+
+    .tc-auth-wrapper {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-top: 40px;
+        z-index: 2;
+    }
+
+    .tc-auth-card {
+        width: 900px;
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        overflow: hidden;
+        z-index: 3;
+    }
+
+    /* LEFT SIDE */
+    .tc-left-panel {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: transparent;
+        padding: 40px;
+    }
+
+        .tc-left-panel img {
+            width: 180px;
+            height: 180px;
+            object-fit: contain;
+        }
+
+    /* RIGHT SIDE */
+    .tc-right-panel {
+        padding: 40px;
+        background: white;
+        border-left: 1px solid #f3f4f6;
+    }
+
+    .tc-form-title {
+        font-size: 1.6rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 6px;
+        color: #111827;
+    }
+
+    .tc-form-caption {
+        font-size: 0.85rem;
+        text-align: center;
+        color: #6b7280;
+        margin-bottom: 28px;
+    }
+
+    .tc-input-group {
+        margin-bottom: 16px;
+    }
+
+    .tc-input-label {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #6b7280;
+        margin-bottom: 6px;
+    }
+
+    .tc-input {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+
+        .tc-input:focus {
+            outline: none;
+            border-color: #111827;
+            box-shadow: 0 0 0 1px #11182711;
+        }
+
+    .tc-form-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .tc-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .tc-primary-btn {
+        width: 100%;
+        border-radius: 10px;
+        padding: 12px 16px;
+        border: none;
+        background: #111827;
+        color: white;
+        font-size: 0.9rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+
+    .tc-bottom-text {
+        text-align: center;
+        margin-top: 16px;
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+</style>
+
+<!-- BACKGROUND LAYER -->
+<div class="tc-diagonal-shape"></div>
+
+<!-- MAIN AUTH LAYOUT -->
+<div class="tc-auth-wrapper">
+    <div class="tc-auth-card">
+
+        <!-- LEFT SIDE: LOGO ONLY -->
+        <div class="tc-left-panel">
+            <img src="~/images/logo.png" alt="TraceCare Logo" />
+        </div>
+
+        <!-- RIGHT SIDE: LOGIN FORM -->
+        <div class="tc-right-panel">
+            <h1 class="tc-form-title">Login</h1>
+            <p class="tc-form-caption">Enter your credentials to access TraceCare.</p>
+
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="tc-input-group">
+                    <label asp-for="Input.Email" class="tc-input-label"></label>
+                    <input asp-for="Input.Email" class="tc-input" />
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+
+                <div class="tc-input-group">
+                    <label asp-for="Input.Password" class="tc-input-label"></label>
+                    <input asp-for="Input.Password" class="tc-input" />
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+
+                <div class="tc-form-row">
+                    <label class="tc-checkbox">
+                        <input asp-for="Input.RememberMe" />
+                        <span>Remember me</span>
+                    </label>
+                    <a asp-page="./ForgotPassword">Forgot Password?</a>
+                </div>
+
+                <button class="tc-primary-btn" type="submit">Proceed</button>
+
+                <div class="tc-bottom-text">
+                    Don’t have an account?
+                    <a asp-page="./Register">Sign up</a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
