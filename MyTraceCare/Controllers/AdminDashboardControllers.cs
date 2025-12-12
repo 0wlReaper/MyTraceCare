@@ -8,6 +8,7 @@ using MyTraceCare.ViewModels;
 
 namespace MyTraceCare.Controllers
 {
+    //“Dashboard is receiving only a number, not a list. We need to update the controller to send a list of users and fix the view to iterate through them.”
     [Authorize(Roles = "Admin")]
     public class AdminDashboardController : Controller
     {

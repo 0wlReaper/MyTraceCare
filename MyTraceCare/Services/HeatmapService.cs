@@ -2,6 +2,7 @@
 
 namespace MyTraceCare.Models
 {
+    //Risk evaluation logic is using fixed thresholds, so the same value is returned regardless of the frame. Fix is to adjust thresholds dynamically or use per-frame values inside MetricCalculator.
     public class MetricsResult
     {
         public double PeakPressure { get; set; }
