@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using MyTraceCare.Models;
 
 namespace MyTraceCare.Models
 {
@@ -8,20 +7,21 @@ namespace MyTraceCare.Models
         public int Id { get; set; }
 
         public string UserId { get; set; } = string.Empty;
-        public User? User { get; set; }
 
         public string Title { get; set; } = string.Empty;
-
         public string Message { get; set; } = string.Empty;
-
-        // NEW — required by your UI + logic
-        public string RiskLevel { get; set; } = "Medium";  // Low, Medium, High
-
-        // NEW — required for identifying frame in CSV dataset
-        public int FrameIndex { get; set; }
 
         public DateTime CreatedAt { get; set; }
 
-        public List<PatientComment> Comments { get; set; } = new();
+        public string RiskLevel { get; set; } = "Low";
+        public int SeverityRank { get; set; } = 0;
+
+        // Frame index where alert occurred (for graph markers, playback jump)
+        public int FrameIndex { get; set; }
+
+        // Navigation properties
+        public User User { get; set; } = default!;
+        public ICollection<PatientComment> Comments { get; set; }
+            = new List<PatientComment>();
     }
 }

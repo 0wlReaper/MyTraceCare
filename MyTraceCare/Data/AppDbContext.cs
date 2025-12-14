@@ -14,7 +14,7 @@ namespace MyTraceCare.Data
         public DbSet<PatientDataFile> PatientDataFiles { get; set; }
         public DbSet<PatientDevice> PatientDevices { get; set; }
         public DbSet<ClinicianPatient> ClinicianPatients { get; set; }
-
+     
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

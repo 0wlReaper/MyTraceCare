@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyTraceCare.Data;
 using MyTraceCare.Models;
-using MyTraceCare.Extensions;
-
 
 namespace MyTraceCare.Controllers
 {
@@ -30,10 +28,9 @@ namespace MyTraceCare.Controllers
             _env = env;
         }
 
-        // Main page
         public async Task<IActionResult> Index(DateTime? date, int frame = 0, int rangeMinutes = 60)
         {
-            var userId = _userManager.GetUserId(User)?? string.Empty;
+            var userId = _userManager.GetUserId(User)!;
 
             var files = await _db.PatientDataFiles
                 .Where(f => f.UserId == userId)
@@ -41,169 +38,90 @@ namespace MyTraceCare.Controllers
                 .ToListAsync();
 
             if (!files.Any())
-            {
-                ViewBag.AvailableDates = new List<DateTime>();
-                return View("~/Views/Patient/Dashboard.cshtml", null);
-            }
+                return View("~/Views/Patient/Dashboard.cshtml", new HeatmapData());
 
             var selectedDate = date ?? files.First().Date;
-            ViewBag.SelectedDate = selectedDate;
-            ViewBag.AvailableDates = files.Select(f => f.Date).ToList();
-            ViewBag.RangeMinutes = rangeMinutes;
+            var file = files.FirstOrDefault(f => f.Date == selectedDate) ?? files.First();
 
-            var file = files.FirstOrDefault(f => f.Date == selectedDate);
-            if (file == null)
-                return View("~/Views/Patient/Dashboard.cshtml", null);
+            string path = Path.Combine(_env.WebRootPath, file.FilePath.TrimStart('/'));
+            if (!System.IO.File.Exists(path))
+                return View("~/Views/Patient/Dashboard.cshtml", new HeatmapData { Date = file.Date });
 
-            string physicalPath = Path.Combine(_env.WebRootPath, file.FilePath.TrimStart('/'));
-            if (!System.IO.File.Exists(physicalPath))
-                return View("~/Views/Patient/Dashboard.cshtml", null);
+            int totalFrames = _heatmap.GetTotalFrames(path);
+            int requestedFrames = rangeMinutes * 60;
+            int effectiveFrames = Math.Min(totalFrames, requestedFrames);
 
-            // total frames for this CSV
-            int totalFramesInFile = _heatmap.GetTotalFrames(physicalPath);
-            if (totalFramesInFile <= 0)
+            if (effectiveFrames < requestedFrames)
             {
-                ViewBag.FrameWarning = "No frames found in this dataset.";
-                return View("~/Views/Patient/Dashboard.cshtml", null);
-            }
-
-            int requestedFrames = rangeMinutes * 60; // 1 fps
-            int effectiveTotalFrames = Math.Min(totalFramesInFile, requestedFrames);
-
-            if (requestedFrames > totalFramesInFile)
-            {
-                double minsAvail = totalFramesInFile / 60.0;
                 ViewBag.FrameWarning =
-                    $"Only {minsAvail:0.#} minutes of data are available for this date. " +
-                    "The rest of the selected window has no data.";
+                    $"Only {(effectiveFrames / 60.0):0.0} minutes of data are available for this date.";
             }
 
-            if (effectiveTotalFrames <= 0)
-            {
-                ViewBag.FrameWarning = "No data frames within the selected window.";
-                return View("~/Views/Patient/Dashboard.cshtml", null);
-            }
+            frame = Math.Clamp(frame, 0, effectiveFrames - 1);
 
-            if (frame < 0) frame = 0;
-            if (frame >= effectiveTotalFrames) frame = effectiveTotalFrames - 1;
-
-            // current frame
-            var matrix = _heatmap.LoadFrame(physicalPath, frame);
-            var metrics = _heatmap.GetFrameMetrics(physicalPath, frame);
+            var matrix = _heatmap.LoadFrame(path, frame);
+            var metrics = _heatmap.GetFrameMetrics(path, frame);
+            var maxRisk = _heatmap.GetMaxRiskUpToFrame(path, frame);
 
             var model = new HeatmapData
             {
-                Date = selectedDate,
+                Date = file.Date,
                 Matrix = matrix,
                 PeakPressure = metrics.PeakPressure,
                 PeakPressureIndex = metrics.PeakPressureIndex,
                 ContactAreaPercent = metrics.ContactAreaPercent,
-                RiskLevel = metrics.RiskLevel,
+                RiskLevel = maxRisk.riskLevel,
                 FrameIndex = frame,
-                TotalFrames = effectiveTotalFrames
+                TotalFrames = effectiveFrames
             };
 
-            // 🔥 REQUIREMENT 3: auto-generate alert for high-pressure frames
-            await GenerateAlertIfHighRiskAsync(userId, model);
+            ViewBag.PeakHistoryJson =
+                JsonSerializer.Serialize(_heatmap.GetPeakHistory(path, effectiveFrames));
 
-            // PPI history for the selected window – uses cached metrics
-            var peakHistory = _heatmap.GetPeakHistory(physicalPath, effectiveTotalFrames);
-            ViewBag.PeakHistoryJson = JsonSerializer.Serialize(peakHistory);
+            ViewBag.AvailableDates = files.Select(f => f.Date).ToList();
+            ViewBag.SelectedDate = selectedDate;
+            ViewBag.RangeMinutes = rangeMinutes;
 
             return View("~/Views/Patient/Dashboard.cshtml", model);
         }
 
-        // AJAX endpoint for the player – returns one frame + metrics as JSON
         [HttpGet]
-        public async Task<IActionResult> GetFrame(DateTime date, int frame, int rangeMinutes = 60)
+        public IActionResult GetFrame(DateTime date, int frame, int rangeMinutes = 60)
         {
-            var userId = _userManager.GetUserId(User);
+            var userId = _userManager.GetUserId(User)!;
 
-            var file = await _db.PatientDataFiles
-                .Where(f => f.UserId == userId && f.Date == date)
-                .FirstOrDefaultAsync();
+            var file = _db.PatientDataFiles
+                .FirstOrDefault(f => f.UserId == userId && f.Date == date);
 
-            if (file == null)
-                return Json(new { success = false, message = "No data for this date." });
+            if (file == null) return Json(new { success = false });
 
-            string physicalPath = Path.Combine(_env.WebRootPath, file.FilePath.TrimStart('/'));
-            if (!System.IO.File.Exists(physicalPath))
-                return Json(new { success = false, message = "File not found." });
+            string path = Path.Combine(_env.WebRootPath, file.FilePath.TrimStart('/'));
+            if (!System.IO.File.Exists(path)) return Json(new { success = false });
 
-            int totalFramesInFile = _heatmap.GetTotalFrames(physicalPath);
-            if (totalFramesInFile <= 0)
-                return Json(new { success = false, message = "No frames in file." });
+            int totalFrames = _heatmap.GetTotalFrames(path);
+            int effectiveFrames = Math.Min(totalFrames, rangeMinutes * 60);
 
-            int requestedFrames = rangeMinutes * 60;
-            int effectiveTotalFrames = Math.Min(totalFramesInFile, requestedFrames);
-            if (effectiveTotalFrames <= 0)
-                return Json(new { success = false, message = "No frames in selected window." });
+            frame = Math.Clamp(frame, 0, effectiveFrames - 1);
 
-            if (frame < 0) frame = 0;
-            if (frame >= effectiveTotalFrames) frame = effectiveTotalFrames - 1;
+            var matrix = _heatmap.LoadFrame(path, frame);
+            var metrics = _heatmap.GetFrameMetrics(path, frame);
 
-            var matrix = _heatmap.LoadFrame(physicalPath, frame);
-            var metrics = _heatmap.GetFrameMetrics(physicalPath, frame);
-
-            // Flatten matrix for JSON
-            var flat = new double[32 * 32];
-            int idx = 0;
+            var flat = new double[1024];
+            int i = 0;
             for (int r = 0; r < 32; r++)
-            {
                 for (int c = 0; c < 32; c++)
-                {
-                    flat[idx++] = matrix[r, c];
-                }
-            }
+                    flat[i++] = matrix[r, c];
 
             return Json(new
             {
                 success = true,
                 frameIndex = frame,
-                totalFrames = effectiveTotalFrames,
                 peakPressure = metrics.PeakPressure,
                 peakPressureIndex = metrics.PeakPressureIndex,
                 contactAreaPercent = metrics.ContactAreaPercent,
                 riskLevel = metrics.RiskLevel,
                 matrix = flat
             });
-        }
-
-        // ----------------- PRIVATE HELPERS -----------------
-
-        /// <summary>
-        /// If the current frame is "High" risk, create a DB Alert once, tied to that timestamp.
-        /// This satisfies requirement 3 (auto alert + DB flag) and helps 7 (timestamp association).
-        /// </summary>
-        private async Task GenerateAlertIfHighRiskAsync(string userId, HeatmapData model)
-        {
-            if (!string.Equals(model.RiskLevel, "High", StringComparison.OrdinalIgnoreCase))
-                return;
-
-            // Represent time as "t = FrameIndex seconds"
-            var timeText = $"{model.Date:dd MMM yyyy} at t={model.FrameIndex}s";
-
-            // Unique tag to avoid duplicate alerts for the same frame
-            var uniqueTag = $"[date={model.Date:yyyy-MM-dd};frame={model.FrameIndex}]";
-
-            bool alreadyExists = await _db.Alerts
-                .AnyAsync(a =>
-                    a.UserId == userId &&
-                    a.Message.Contains(uniqueTag));
-
-            if (alreadyExists)
-                return;
-
-            var alert = new Alert
-            {
-                UserId = userId,
-                Title = "High pressure detected",
-                Message = $"High pressure period detected on {timeText}. {uniqueTag}",
-                CreatedAt = model.Date.AddSeconds(model.FrameIndex)
-            };
-
-            _db.Alerts.Add(alert);
-            await _db.SaveChangesAsync();
         }
     }
 }

@@ -6,6 +6,8 @@ namespace MyTraceCare.ViewModels
 {
     public class AdminUserViewModel
     {
+        public string? Id { get; set; }
+
         [Required]
         public string FullName { get; set; } = string.Empty;
 
@@ -21,7 +23,7 @@ namespace MyTraceCare.ViewModels
         [Required]
         public DateTime DOB { get; set; }
 
-        [Required]
-        public string Password { get; set; } = string.Empty;
+        // nullable ONLY for edit
+        public string? Password { get; set; }
     }
 }

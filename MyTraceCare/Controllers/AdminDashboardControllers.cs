@@ -8,7 +8,6 @@ using MyTraceCare.ViewModels;
 
 namespace MyTraceCare.Controllers
 {
-    //“Dashboard is receiving only a number, not a list. We need to update the controller to send a list of users and fix the view to iterate through them.”
     [Authorize(Roles = "Admin")]
     public class AdminDashboardController : Controller
     {
@@ -21,35 +20,21 @@ namespace MyTraceCare.Controllers
             _db = db;
         }
 
-        // ------------------------------------------------------
-        // DASHBOARD HOME
-        // ------------------------------------------------------
+        // =========================
+        // INDEX → USER LIST
+        // =========================
         public async Task<IActionResult> Index()
         {
-            var vm = new AdminDashboardStatsViewModel
-            {
-                TotalUsers = await _db.Users.CountAsync(),
-                TotalPatients = await _db.Users.CountAsync(u => u.Role == UserRole.Patient),
-                TotalClinicians = await _db.Users.CountAsync(u => u.Role == UserRole.Clinician),
-                TotalAdmins = await _db.Users.CountAsync(u => u.Role == UserRole.Admin),
-                TotalAlerts = await _db.Alerts.CountAsync()
-            };
+            var users = await _db.Users
+                .OrderBy(u => u.FullName)
+                .ToListAsync();
 
-            return View("~/Views/Admin/Index.cshtml", vm);
+            return View("~/Views/Admin/Index.cshtml", users);
         }
 
-        // ------------------------------------------------------
-        // LIST USERS
-        // ------------------------------------------------------
-        public async Task<IActionResult> Users()
-        {
-            var users = await _db.Users.OrderBy(u => u.FullName).ToListAsync();
-            return View("~/Views/Admin/Users.cshtml", users);
-        }
-
-        // ------------------------------------------------------
+        // =========================
         // SYSTEM ALERTS
-        // ------------------------------------------------------
+        // =========================
         public async Task<IActionResult> Alerts()
         {
             var alerts = await _db.Alerts
@@ -60,31 +45,70 @@ namespace MyTraceCare.Controllers
             return View("~/Views/Admin/Alerts.cshtml", alerts);
         }
 
-        // ------------------------------------------------------
-        // CREATE USER (GET)
-        // ------------------------------------------------------
-        public IActionResult CreateUser()
+        // =========================
+        // CREATE / EDIT USER (GET)
+        // =========================
+        [HttpGet]
+        public async Task<IActionResult> CreateUser(string? id)
         {
-            return View("~/Views/Admin/CreateUser.cshtml", new AdminUserViewModel());
+            if (string.IsNullOrEmpty(id))
+                return View("~/Views/Admin/CreateUser.cshtml", new AdminUserViewModel());
+
+            var user = await _db.Users.FindAsync(id);
+            if (user == null) return NotFound();
+
+            return View("~/Views/Admin/CreateUser.cshtml", new AdminUserViewModel
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email!,
+                Role = user.Role,
+                Gender = user.Gender ?? Gender.Male,
+                DOB = user.DOB ?? DateTime.UtcNow
+            });
         }
 
-        // ------------------------------------------------------
-        // CREATE USER (POST)
-        // ------------------------------------------------------
+        // =========================
+        // CREATE / EDIT USER (POST)
+        // =========================
         [HttpPost]
         public async Task<IActionResult> CreateUser(AdminUserViewModel model)
         {
             if (!ModelState.IsValid)
                 return View("~/Views/Admin/CreateUser.cshtml", model);
 
+            // ---------- EDIT ----------
+            if (!string.IsNullOrEmpty(model.Id))
+            {
+                var user = await _db.Users.FindAsync(model.Id);
+                if (user == null) return NotFound();
+
+                user.FullName = model.FullName;
+                user.Email = model.Email;
+                user.UserName = model.Email;
+                user.Role = model.Role;
+                user.Gender = model.Gender;
+                user.DOB = model.DOB;
+
+                if (!string.IsNullOrWhiteSpace(model.Password))
+                {
+                    await _userManager.RemovePasswordAsync(user);
+                    await _userManager.AddPasswordAsync(user, model.Password);
+                }
+
+                await _db.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+
+            // ---------- CREATE ----------
             var exists = await _userManager.FindByEmailAsync(model.Email);
             if (exists != null)
             {
-                ModelState.AddModelError("", "Email already exists.");
+                ModelState.AddModelError("", "Email already exists");
                 return View("~/Views/Admin/CreateUser.cshtml", model);
             }
 
-            var user = new User
+            var newUser = new User
             {
                 UserName = model.Email,
                 Email = model.Email,
@@ -95,8 +119,7 @@ namespace MyTraceCare.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
-            var result = await _userManager.CreateAsync(user, model.Password);
-
+            var result = await _userManager.CreateAsync(newUser, model.Password!);
             if (!result.Succeeded)
             {
                 foreach (var e in result.Errors)
@@ -105,65 +128,14 @@ namespace MyTraceCare.Controllers
                 return View("~/Views/Admin/CreateUser.cshtml", model);
             }
 
-            await _userManager.AddToRoleAsync(user, model.Role.ToString());
-
-            return RedirectToAction("Users");
+            await _userManager.AddToRoleAsync(newUser, model.Role.ToString());
+            return RedirectToAction(nameof(Index));
         }
 
-        // ------------------------------------------------------
-        // EDIT USER (GET)
-        // ------------------------------------------------------
-        public async Task<IActionResult> EditUser(string id)
-        {
-            var user = await _db.Users.FindAsync(id);
-            if (user == null) return NotFound();
-
-            var vm = new AdminUserEditViewModel
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                Email = user.Email!,
-                Gender = user.Gender ?? Gender.Male,
-                Role = user.Role,
-                DOB = user.DOB ?? DateTime.UtcNow
-            };
-
-            return View("~/Views/Admin/EditUser.cshtml", vm);
-        }
-
-        // ------------------------------------------------------
-        // EDIT USER (POST)
-        // ------------------------------------------------------
-        [HttpPost]
-        public async Task<IActionResult> EditUser(AdminUserEditViewModel model)
-        {
-            if (!ModelState.IsValid)
-                return View("~/Views/Admin/EditUser.cshtml", model);
-
-            var user = await _db.Users.FindAsync(model.Id);
-            if (user == null) return NotFound();
-
-            user.FullName = model.FullName;
-            user.Email = model.Email;
-            user.UserName = model.Email;
-            user.Gender = model.Gender;
-            user.Role = model.Role;
-            user.DOB = model.DOB;
-
-            if (!string.IsNullOrWhiteSpace(model.NewPassword))
-            {
-                await _userManager.RemovePasswordAsync(user);
-                await _userManager.AddPasswordAsync(user, model.NewPassword);
-            }
-
-            await _db.SaveChangesAsync();
-
-            return RedirectToAction("Users");
-        }
-
-        // ------------------------------------------------------
-        // DELETE USER CONFIRM
-        // ------------------------------------------------------
+        // =========================
+        // DELETE USER (GET)
+        // =========================
+        [HttpGet]
         public async Task<IActionResult> DeleteUser(string id)
         {
             var user = await _db.Users.FindAsync(id);
@@ -172,9 +144,9 @@ namespace MyTraceCare.Controllers
             return View("~/Views/Admin/DeleteUser.cshtml", user);
         }
 
-        // ------------------------------------------------------
+        // =========================
         // DELETE USER (POST)
-        // ------------------------------------------------------
+        // =========================
         [HttpPost]
         public async Task<IActionResult> DeleteUserConfirmed(string id)
         {
@@ -184,7 +156,7 @@ namespace MyTraceCare.Controllers
             _db.Users.Remove(user);
             await _db.SaveChangesAsync();
 
-            return RedirectToAction("Users");
+            return RedirectToAction(nameof(Index));
         }
     }
 }

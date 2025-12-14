@@ -1,49 +1,50 @@
 ﻿@model MyTraceCare.ViewModels.AdminUserViewModel
-
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "Create User";
+    bool isEdit = !string.IsNullOrEmpty(Model.Id);
+    ViewData["Title"] = isEdit ? "Edit User" : "Create User";
 }
 
-<h2 class="mb-3">Create User</h2>
+<h2>@ViewData["Title"]</h2>
 
-<form method="post" class="mt-3" asp-action="CreateUser">
+<form method="post">
+    <input type="hidden" asp-for="Id" />
+
     <div class="mb-3">
-        <label class="form-label">Full Name</label>
+        <label>Full Name</label>
         <input asp-for="FullName" class="form-control" />
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Email</label>
+        <label>Email</label>
         <input asp-for="Email" class="form-control" />
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Role</label>
-        <select asp-for="Role" class="form-select">
-            <option value="Patient">Patient</option>
-            <option value="Clinician">Clinician</option>
-            <option value="Admin">Admin</option>
-        </select>
+        <label>Role</label>
+        <select asp-for="Role" asp-items="Html.GetEnumSelectList<UserRole>()"
+                class="form-select"></select>
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Gender</label>
-        <select asp-for="Gender" class="form-select">
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-        </select>
+        <label>Gender</label>
+        <select asp-for="Gender" asp-items="Html.GetEnumSelectList<Gender>()"
+                class="form-select"></select>
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Date of Birth</label>
+        <label>Date of Birth</label>
         <input asp-for="DOB" type="date" class="form-control" />
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Password</label>
-        <input asp-for="Password" class="form-control" type="password" />
+        <label>@(isEdit ? "New Password (optional)" : "Password")</label>
+        <input asp-for="Password" type="password" class="form-control" />
     </div>
 
-    <button class="btn btn-dark mt-2">Create</button>
+    <button class="btn btn-dark">
+        @(isEdit ? "Update User" : "Create User")
+    </button>
+
+    <a class="btn btn-secondary ms-2" href="/AdminDashboard/Index">Cancel</a>
 </form>

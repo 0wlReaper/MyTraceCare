@@ -5,35 +5,30 @@
     ViewData["Title"] = "System Alerts";
 }
 
-<h2 class="mb-4">System Alerts</h2>
+<h2 class="mb-3">System Alerts</h2>
 
-@if (!Model.Any())
-{
-    <div class="alert alert-info">No alerts have been generated.</div>
-}
-else
-{
-    <table class="table table-striped table-bordered align-middle">
-        <thead class="table-light">
+<table class="table table-bordered table-hover">
+    <thead class="table-light">
+        <tr>
+            <th>Date</th>
+            <th>User</th>
+            <th>Title</th>
+            <th>Risk</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var a in Model)
+        {
             <tr>
-                <th>Patient</th>
-                <th>Message</th>
-                <th>Risk</th>
-                <th>Frame</th>
-                <th>Created</th>
+                <td>@a.CreatedAt.ToLocalTime()</td>
+                <td>@a.User?.FullName</td>
+                <td>@a.Title</td>
+                <td>
+                    <span class="badge bg-@(a.RiskLevel == "High" ? "danger" : "warning")">
+                        @a.RiskLevel
+                    </span>
+                </td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach (var a in Model)
-            {
-                <tr>
-                    <td>@(a.User?.FullName ?? "Unknown")</td>
-                    <td>@a.Message</td>
-                    <td>@a.RiskLevel</td>
-                    <td>@a.FrameIndex</td>
-                    <td>@a.CreatedAt.ToString("dd MMM yyyy • HH:mm")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+        }
+    </tbody>
+</table>

@@ -159,7 +159,7 @@ namespace MyTraceCare.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("MyTraceCare.Models.Alert", b =>
+            modelBuilder.Entity("MyTraceCare.Models.Alerts", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -180,6 +180,9 @@ namespace MyTraceCare.Migrations
                     b.Property<string>("RiskLevel")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SeverityRank")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -458,7 +461,7 @@ namespace MyTraceCare.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("MyTraceCare.Models.Alert", b =>
+            modelBuilder.Entity("MyTraceCare.Models.Alerts", b =>
                 {
                     b.HasOne("MyTraceCare.Models.User", "User")
                         .WithMany()
@@ -490,7 +493,7 @@ namespace MyTraceCare.Migrations
 
             modelBuilder.Entity("MyTraceCare.Models.PatientComment", b =>
                 {
-                    b.HasOne("MyTraceCare.Models.Alert", "Alert")
+                    b.HasOne("MyTraceCare.Models.Alerts", "Alert")
                         .WithMany("Comments")
                         .HasForeignKey("AlertId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -534,7 +537,7 @@ namespace MyTraceCare.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("MyTraceCare.Models.Alert", b =>
+            modelBuilder.Entity("MyTraceCare.Models.Alerts", b =>
                 {
                     b.Navigation("Comments");
                 });
